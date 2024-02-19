@@ -7,10 +7,10 @@ public class Main {
         StringTokenizer st = new StringTokenizer(br.readLine());
         int N = Integer.parseInt(st.nextToken());
         int M = Integer.parseInt(st.nextToken());
-        Map<Integer, Integer> map = new HashMap<>();
+        Map<Long, Integer> map = new HashMap<>();
         st = new StringTokenizer(br.readLine());
         for (int i=0;i<N;i++) {
-            int key = Integer.parseInt(st.nextToken());
+            Long key = Long.parseLong(st.nextToken());
             if (map.containsKey(key)) {
                 int count = map.get(key);
                 map.put(key, ++count);
@@ -20,11 +20,11 @@ public class Main {
         }
         st = new StringTokenizer(br.readLine());
         for (int i=0;i<M;i++){
-            int key = Integer.parseInt(st.nextToken());
+            Long key = Long.parseLong(st.nextToken());
             if (map.containsKey(key)) {
                 System.out.print(map.get(key)+" ");
             } else {
-                System.out.println(0+ " ");
+                System.out.print(0+ " ");
             }
         }
     }
