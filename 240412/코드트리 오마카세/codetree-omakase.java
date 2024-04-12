@@ -13,7 +13,6 @@ public class Main {
         Q = Integer.parseInt(st.nextToken());
         sushi = new HashMap<>();
         person = new HashMap<>();
-        curTime = 1;
         for (int i = 0; i < Q; i++) {
             String[] command = br.readLine().split(" ");
             turnSushi(Integer.parseInt(command[1]));
@@ -51,16 +50,10 @@ public class Main {
                 // 지나온 길에 주인 있었다면
                 if (person.containsKey(name)) {
                     int[] personInfo = person.get(name);
-                    if (location.get(i) <= personInfo[0] && personInfo[0] <= newLocation) {
-                        // 스시가 한바퀴 돌지 않았을 때
+                    if ((location.get(i)+move >=L) || (location.get(i) <= personInfo[0] && personInfo[0] <= newLocation)) {
+                        // 스시가 한바퀴 이상 돌고 있거나 이동 중에 사람을 지나친다면 먹기
                         personInfo[1]--;
                         eatenSushi.add(i);
-                    } else if (newLocation <= location.get(i)) {
-                        // 스시가 한바퀴 돌고 0의 위치에서 다시 돌고 있을 때
-                        if (location.get(i) <= personInfo[0] || personInfo[0] <= newLocation) {
-                            personInfo[1]--;
-                            eatenSushi.add(i);
-                        }
                     }
                     person.put(name, personInfo);
                 }
