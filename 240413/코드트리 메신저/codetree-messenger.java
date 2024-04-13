@@ -66,21 +66,21 @@ public class Main {
                 nodeInfo[c2].changeParent(c1Parent);
             } else if (command[0].equals("500")) {
                 // 알림 받을 수 있는 채팅방 수 조회
-                System.out.println(possReceiveNode(Integer.parseInt(command[1]), 0) - 1);
+                System.out.println(possReceiveNode(Integer.parseInt(command[1]), 0, true) - 1);
             }
         }
     }
 
-    private static int possReceiveNode(int c, int auth) {
+    private static int possReceiveNode(int c, int auth, boolean start) {
         // c번까지 알림이 도달할 수 있는 채팅방의 수 (c는 제외)
-        if (nodeInfo[c].wall) {
+        if (!start && nodeInfo[c].wall) {
             // 이 이후부터는 모두 받기 불가
             return 0;
         }
         int result = 0;
         if (nodeInfo[c].authority >= auth) result++; // 해당 노드에서도 보낼 수 있다면
         for (Node child : nodeInfo[c].child) {
-            result += possReceiveNode(child.number, auth + 1);
+            result += possReceiveNode(child.number, auth + 1, false);
         }
         return result;
     }
