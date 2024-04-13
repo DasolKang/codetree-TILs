@@ -1,114 +1,152 @@
-import java.io.*;
-import java.util.*;
+import java.util.Scanner;
 
 public class Main {
-    private static int N, Q;
-    private static Node[] nodeInfo;
+    public static final int MAX_N = 100001;
+    public static final int MAX_D = 22;
 
-    private static class Node {
-        int number, authority;
-        Node parents;
-        ArrayList<Node> child;
-        boolean wall = false;
+    public static int N, Q;
+    public static int[] authority = new int[MAX_N];
+    public static int[] parents = new int[MAX_N];
+    public static int[] answer = new int[MAX_N];
+    public static boolean[] wall = new boolean[MAX_N];
+    public static int[][] sendInfo = new int[MAX_N][MAX_D]; //[i][j] : i번 부서에 j권한을 가진 알림
 
-        Node() {
-            this.child = new ArrayList<>();
-        }
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
 
-        public void setNode(int number, int authority, Node parents) {
-            this.number = number;
-            this.authority = authority;
-            this.parents = parents;
-        }
+        N = sc.nextInt();
+        Q = sc.nextInt();
 
-        public void addChild(Node child) {
-            this.child.add(child);
-        }
-
-        public void changeParent(Node parents) {
-            this.parents = parents;
-        }
-
-        public void switchWall() {
-            this.wall = !this.wall;
-        }
-
-        public void changeAuthority(int power) {
-            this.authority = power;
-        }
-    }
-
-    public static void main(String[] args) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        init(br);
-        for (int i = 0; i < Q - 1; i++) {
-            String[] command = br.readLine().split(" ");
-            if (command[0].equals("200")) {
-                // 알림망 설정 ON / OFF
-                int c = Integer.parseInt(command[1]);
-                nodeInfo[c].switchWall();
-            } else if (command[0].equals("300")) {
-                // 권한 세기 변경
-                int c = Integer.parseInt(command[1]);
-                int power = Integer.parseInt(command[2]);
-                nodeInfo[c].changeAuthority(power);
-            } else if (command[0].equals("400")) {
-                // 부모 채팅방 교환
-                int c1 = Integer.parseInt(command[1]);
-                int c2 = Integer.parseInt(command[2]);
-                Node c1Parent = nodeInfo[c1].parents;
-                c1Parent.child.remove(nodeInfo[c1]);
-                c1Parent.addChild(nodeInfo[c2]);
-                Node c2Parent = nodeInfo[c2].parents;
-                c2Parent.child.remove(nodeInfo[c2]);
-                c2Parent.addChild(nodeInfo[c1]);
-                nodeInfo[c1].changeParent(c2Parent);
-                nodeInfo[c2].changeParent(c1Parent);
-            } else if (command[0].equals("500")) {
-                // 알림 받을 수 있는 채팅방 수 조회
-                System.out.println(possReceiveNode(Integer.parseInt(command[1]), 0, true) - 1);
+        while (Q-- > 0) {
+            int query = sc.nextInt();
+            if (query == 100) {
+                init(sc);
+            } else if (query == 200) {
+                int chat = sc.nextInt();
+                toggle_noti(chat);
+            } else if (query == 300) {
+                int chat = sc.nextInt();
+                int power = sc.nextInt();
+                change_power(chat, power);
+            } else if (query == 400) {
+                int chat1 = sc.nextInt();
+                int chat2 = sc.nextInt();
+                change_parent(chat1, chat2);
+            } else if (query == 500) {
+                int chat = sc.nextInt();
+                System.out.println(answer[chat]);
             }
         }
     }
 
-    private static int possReceiveNode(int c, int auth, boolean start) {
-        // c번까지 알림이 도달할 수 있는 채팅방의 수 (c는 제외)
-        if (!start && nodeInfo[c].wall) {
-            // 이 이후부터는 모두 받기 불가
-            return 0;
+    // 채팅의 알림 상태를 토글합니다.
+    public static void toggle_noti(int chat) {
+        if (wall[chat]) {
+            int cur = parents[chat];
+            int num = 1;
+            // 상위 채팅으로 이동하며 noti 값에 따라 nx와 val 값을 갱신합니다.
+            while (cur != 0) {
+                for (int i = num; i <= 21; i++) {
+                    answer[cur] += sendInfo[chat][i];
+                    if (i > num) sendInfo[cur][i - num] += sendInfo[chat][i];
+                }
+                if (wall[cur]) break;
+                cur = parents[cur];
+                num++;
+            }
+            wall[chat] = false;
+        } else {
+            int cur = parents[chat];
+            int num = 1;
+            // 상위 채팅으로 이동하며 noti 값에 따라 nx와 val 값을 갱신합니다.
+            while (cur != 0) {
+                for (int i = num; i <= 21; i++) {
+                    answer[cur] -= sendInfo[chat][i];
+                    if (i > num) sendInfo[cur][i - num] -= sendInfo[chat][i];
+                }
+                if (wall[cur]) break;
+                cur = parents[cur];
+                num++;
+            }
+            wall[chat] = true;
         }
-        int result = 0;
-        if (nodeInfo[c].authority >= auth) result++; // 해당 노드에서도 보낼 수 있다면
-        for (Node child : nodeInfo[c].child) {
-            result += possReceiveNode(child.number, auth + 1, false);
-        }
-        return result;
     }
 
-    private static void init(BufferedReader br) throws IOException {
-        StringTokenizer st = new StringTokenizer(br.readLine());
-        N = Integer.parseInt(st.nextToken());
-        Q = Integer.parseInt(st.nextToken());
-        nodeInfo = new Node[N + 1];
-        st = new StringTokenizer(br.readLine());
-        st.nextToken();
-        int[][] temp = new int[N + 1][2];
-        for (int i = 0; i <= N; i++) nodeInfo[i] = new Node();
-        for (int i = 0; i < 2 * N; i++) {
-            if (i >= N) {
-                // 권한
-                temp[i - N][1] = Integer.parseInt(st.nextToken());
-            } else {
-                temp[i][0] = Integer.parseInt(st.nextToken());
+    // 채팅의 권한의 크기를 변경합니다.
+    public static void change_power(int chat, int power) {
+        int bef_power = authority[chat];
+        power = Math.min(power, 20);  // 권한의 크기를 20으로 제한합니다.
+        authority[chat] = power;
+
+        sendInfo[chat][bef_power]--;
+        if (!wall[chat]) {
+            int cur = parents[chat];
+            int num = 1;
+            // 상위 채팅으로 이동하며 nx와 val 값을 갱신합니다.
+            while (cur != 0) {
+                if (bef_power >= num) answer[cur]--;
+                if (bef_power > num) sendInfo[cur][bef_power - num]--;
+                if (wall[cur]) break;
+                cur = parents[cur];
+                num++;
             }
         }
-        // 입력받은 정보로 트리 저장
-        nodeInfo[0].setNode(0, 0, null);
-        for (int i = 0; i < N; i++) {
-            // i+1번 노드
-            Node parent = nodeInfo[temp[i][0]];
-            nodeInfo[i + 1].setNode(i + 1, temp[i][1], parent);
-            parent.addChild(nodeInfo[i + 1]);
+
+        sendInfo[chat][power]++;
+        if (!wall[chat]) {
+            int cur = parents[chat];
+            int num = 1;
+            // 상위 채팅으로 이동하며 nx와 val 값을 갱신합니다.
+            while (cur != 0) {
+                if (power >= num) answer[cur]++;
+                if (power > num) sendInfo[cur][power - num]++;
+                if (wall[cur]) break;
+                cur = parents[cur];
+                num++;
+            }
+        }
+    }
+
+    // 두 채팅의 부모를 교체합니다.
+    public static void change_parent(int chat1, int chat2) {
+        boolean bef_noti1 = wall[chat1];
+        boolean bef_noti2 = wall[chat2];
+
+        if (!wall[chat1]) toggle_noti(chat1);
+        if (!wall[chat2]) toggle_noti(chat2);
+
+        int temp = parents[chat1];
+        parents[chat1] = parents[chat2];
+        parents[chat2] = temp;
+
+        if (!bef_noti1) toggle_noti(chat1);
+        if (!bef_noti2) toggle_noti(chat2);
+    }
+
+    // 초기 설정 값을 받아옵니다.
+    public static void init(Scanner sc) {
+        // 부모 채팅과 채팅의 권한 정보를 입력받습니다.
+        for (int i = 1; i <= N; i++) {
+            parents[i] = sc.nextInt();
+        }
+        for (int i = 1; i <= N; i++) {
+            authority[i] = sc.nextInt();
+            // 채팅의 권한이 20을 초과하는 경우 20으로 제한합니다.
+            if (authority[i] > 20) authority[i] = 20;
+        }
+
+        // nx 배열과 val 값을 초기화합니다.
+        for (int i = 1; i <= N; i++) {
+            int cur = i;
+            int x = authority[i];
+            sendInfo[cur][x]++;
+            // 상위 채팅으로 이동하며 nx와 val 값을 갱신합니다.
+            while (parents[cur] != 0 && x != 0) {
+                cur = parents[cur];
+                x--;
+                if (x != 0) sendInfo[cur][x]++;
+                answer[cur]++;
+            }
         }
     }
 
